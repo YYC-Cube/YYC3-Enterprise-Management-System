@@ -1,0 +1,416 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["multiSchema"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  schemas  = ["sys_management", "hr_management", "office_collab"]
+}
+
+// ============================================================================
+// sys_management schema - 系统管理
+// ============================================================================
+
+model SysUser {
+  id          String   @id @db.Uuid
+  tenantId    String?  @map("tenant_id") @db.Uuid
+  email       String
+  username    String
+  firstName   String?  @map("first_name")
+  lastName    String?  @map("last_name")
+  avatarUrl   String?  @map("avatar_url")
+  phone       String?
+  department  String?
+  position    String?
+  preferences Json?    @db.JsonB
+  status      String?
+  passwordHash String?  @map("password_hash")
+  lastLoginAt DateTime? @map("last_login_at")
+  createdAt   DateTime? @map("created_at") @default(now())
+  updatedAt   DateTime? @map("updated_at") @updatedAt
+
+  userRoles       SysUserRole[]
+  operationLogs   SysOperationLog[]
+  loginLogs       SysLoginLog[]
+
+  @@map("users")
+  @@schema("sys_management")
+}
+
+model SysRole {
+  id          String    @id @db.Uuid
+  tenantId    String?   @map("tenant_id") @db.Uuid
+  name        String
+  description String?
+  permissions Json?     @db.JsonB
+  isSystem    Boolean?  @map("is_system")
+  createdAt   DateTime? @map("created_at") @default(now())
+  updatedAt   DateTime? @map("updated_at") @updatedAt
+
+  userRoles       SysUserRole[]
+  rolePermissions SysRolePermission[]
+
+  @@map("roles")
+  @@schema("sys_management")
+}
+
+model SysPermission {
+  id          String    @id @db.Uuid
+  name        String
+  resource    String
+  action      String
+  description String?
+  createdAt   DateTime? @map("created_at") @default(now())
+
+  rolePermissions SysRolePermission[]
+
+  @@map("permissions")
+  @@schema("sys_management")
+}
+
+model SysUserRole {
+  id         String    @id @db.Uuid
+  userId     String?   @map("user_id") @db.Uuid
+  roleId     String?   @map("role_id") @db.Uuid
+  grantedAt  DateTime? @map("granted_at")
+  assignedBy String?   @map("assigned_by") @db.Uuid
+  expiresAt  DateTime? @map("expires_at")
+
+  user SysUser?  @relation(fields: [userId], references: [id])
+  role SysRole?  @relation(fields: [roleId], references: [id])
+
+  @@map("user_roles")
+  @@schema("sys_management")
+}
+
+model SysRolePermission {
+  id           String    @id @db.Uuid
+  roleId       String?   @map("role_id") @db.Uuid
+  permissionId String?   @map("permission_id") @db.Uuid
+  grantedAt    DateTime? @map("granted_at")
+
+  role       SysRole?       @relation(fields: [roleId], references: [id])
+  permission SysPermission? @relation(fields: [permissionId], references: [id])
+
+  @@map("role_permissions")
+  @@schema("sys_management")
+}
+
+model SysNotification {
+  id        String   @id @db.Uuid
+  title     String?
+  content   String?
+  type      String?
+  userId    String?  @map("user_id") @db.Uuid
+  isRead    Boolean? @map("is_read")
+  createdAt DateTime? @map("created_at") @default(now())
+
+  @@map("notifications")
+  @@schema("sys_management")
+}
+
+model SysSystemConfig {
+  id         String   @id @db.Uuid
+  configKey  String?  @map("config_key")
+  configValue String? @map("config_value")
+  category   String?
+  description String?
+  createdAt  DateTime? @map("created_at") @default(now())
+  updatedAt  DateTime? @map("updated_at") @updatedAt
+
+  @@map("system_configs")
+  @@schema("sys_management")
+}
+
+model SysTenant {
+  id          String   @id @db.Uuid
+  name        String?
+  code        String?
+  description String?
+  status      String?
+  createdAt   DateTime? @map("created_at") @default(now())
+
+  @@map("tenants")
+  @@schema("sys_management")
+}
+
+model SysLoginLog {
+  id         String   @id @db.Uuid
+  userId     String?  @map("user_id") @db.Uuid
+  ipAddress  String?  @map("ip_address")
+  userAgent  String?  @map("user_agent")
+  loginAt    DateTime? @map("login_at")
+  status     String?
+
+  user SysUser? @relation(fields: [userId], references: [id])
+
+  @@map("login_logs")
+  @@schema("sys_management")
+}
+
+model SysOperationLog {
+  id          String   @id @db.Uuid
+  userId      String?  @map("user_id") @db.Uuid
+  module      String?
+  action      String?
+  target      String?
+  detail      String?
+  ipAddress   String?  @map("ip_address")
+  operatedAt  DateTime? @map("operated_at")
+
+  user SysUser? @relation(fields: [userId], references: [id])
+
+  @@map("operation_logs")
+  @@schema("sys_management")
+}
+
+// ============================================================================
+// hr_management schema - 人力资源
+// ============================================================================
+
+model HrDepartment {
+  id             String    @id @db.Uuid
+  tenantId       String?   @map("tenant_id") @db.Uuid
+  departmentCode String?   @map("department_code")
+  departmentName String?   @map("department_name") @unique
+  parentId       String?   @map("parent_id") @db.Uuid
+  managerId      String?   @map("manager_id") @db.Uuid
+  description    String?
+  location       String?
+  budget         Decimal?  @db.Decimal
+  status         String?
+  createdAt      DateTime? @map("created_at") @default(now())
+  updatedAt      DateTime? @map("updated_at") @updatedAt
+
+  employees HrEmployee[]
+
+  @@map("departments")
+  @@schema("hr_management")
+}
+
+model HrPosition {
+  id              String    @id @db.Uuid
+  tenantId        String?   @map("tenant_id") @db.Uuid
+  positionCode    String?   @map("position_code")
+  positionName    String?   @map("position_name")
+  departmentId    String?   @map("department_id") @db.Uuid
+  jobLevel        String?   @map("job_level")
+  jobFamily       String?   @map("job_family")
+  description     String?
+  requirements    String?
+  responsibilities String?
+  minSalary       Decimal?  @map("min_salary") @db.Decimal
+  maxSalary       Decimal?  @map("max_salary") @db.Decimal
+  status          String?
+  createdAt       DateTime? @map("created_at") @default(now())
+  updatedAt       DateTime? @map("updated_at") @updatedAt
+
+  @@map("positions")
+  @@schema("hr_management")
+}
+
+model HrEmployee {
+  id                 String    @id @db.Uuid
+  tenantId           String?   @map("tenant_id") @db.Uuid
+  employeeCode       String?   @map("employee_code")
+  userId             String?   @map("user_id") @db.Uuid
+  firstName          String?   @map("first_name")
+  lastName           String?   @map("last_name")
+  gender             String?
+  birthDate          DateTime? @map("birth_date") @db.Date
+  idNumber           String?   @map("id_number")
+  phone              String?
+  email              String?
+  address            String?
+  department         String?
+  position           String?
+  jobTitle           String?   @map("job_title")
+  employeeType       String?   @map("employee_type")
+  employmentStatus   String?   @map("employment_status")
+  hireDate           DateTime? @map("hire_date") @db.Date
+  probationEndDate   DateTime? @map("probation_end_date") @db.Date
+  terminationDate    DateTime? @map("termination_date") @db.Date
+  terminationReason  String?   @map("termination_reason")
+  managerId          String?   @map("manager_id") @db.Uuid
+  workLocation       String?   @map("work_location")
+  workEmail          String?   @map("work_email")
+  emergencyContact   Json?     @map("emergency_contact") @db.JsonB
+  education          Json?     @db.JsonB
+  skills             Json?     @db.JsonB
+  certifications     Json?     @db.JsonB
+  salary             Decimal?  @db.Decimal
+  salaryCurrency     String?   @map("salary_currency")
+  notes              String?
+  createdBy          String?   @map("created_by") @db.Uuid
+  createdAt          DateTime? @map("created_at") @default(now())
+  updatedAt          DateTime? @map("updated_at") @updatedAt
+
+  departmentRef HrDepartment? @relation(fields: [department], references: [departmentName])
+
+  @@map("employees")
+  @@schema("hr_management")
+}
+
+model HrAttendanceRecord {
+  id          String    @id @db.Uuid
+  tenantId    String?   @map("tenant_id") @db.Uuid
+  employeeId  String?   @map("employee_id") @db.Uuid
+  date        DateTime? @db.Date
+  checkIn     DateTime? @map("check_in")
+  checkOut    DateTime? @map("check_out")
+  status      String?
+  remarks     String?
+  createdAt   DateTime? @map("created_at") @default(now())
+
+  @@map("attendance_records")
+  @@schema("hr_management")
+}
+
+model HrSalaryRecord {
+  id          String    @id @db.Uuid
+  tenantId    String?   @map("tenant_id") @db.Uuid
+  employeeId  String?   @map("employee_id") @db.Uuid
+  month       String?
+  baseSalary  Decimal?  @map("base_salary") @db.Decimal
+  bonus       Decimal?  @db.Decimal
+  deduction   Decimal?  @db.Decimal
+  netSalary   Decimal?  @map("net_salary") @db.Decimal
+  status      String?
+  paidAt      DateTime? @map("paid_at")
+  createdAt   DateTime? @map("created_at") @default(now())
+
+  @@map("salary_records")
+  @@schema("hr_management")
+}
+
+// ============================================================================
+// office_collab schema - 办公协作
+// ============================================================================
+
+model OfficeApprovalWorkflow {
+  id             String    @id @db.Uuid
+  tenantId       String?   @map("tenant_id") @db.Uuid
+  workflowCode   String?   @map("workflow_code")
+  workflowName   String?   @map("workflow_name")
+  workflowType   String?   @map("workflow_type")
+  description    String?
+  formConfig     Json?     @map("form_config") @db.JsonB
+  approvalSteps  Json?     @map("approval_steps") @db.JsonB
+  conditions     Json?     @db.JsonB
+  isActive       Boolean?  @map("is_active")
+  version        Int?
+  createdBy      String?   @map("created_by") @db.Uuid
+  createdAt      DateTime? @map("created_at") @default(now())
+  updatedAt      DateTime? @map("updated_at") @updatedAt
+
+  instances OfficeApprovalInstance[]
+
+  @@map("approval_workflows")
+  @@schema("office_collab")
+}
+
+model OfficeApprovalInstance {
+  id           String    @id @db.Uuid
+  tenantId     String?   @map("tenant_id") @db.Uuid
+  workflowId   String?   @map("workflow_id") @db.Uuid
+  instanceCode String?   @map("instance_code")
+  title        String?
+  applicantId  String?   @map("applicant_id") @db.Uuid
+  currentStep  Int?      @map("current_step")
+  status       String?
+  formData     Json?     @map("form_data") @db.JsonB
+  attachments  Json?     @db.JsonB
+  startedAt    DateTime? @map("started_at")
+  completedAt  DateTime? @map("completed_at")
+  createdAt    DateTime? @map("created_at") @default(now())
+  updatedAt    DateTime? @map("updated_at") @updatedAt
+
+  workflow OfficeApprovalWorkflow? @relation(fields: [workflowId], references: [id])
+  records  OfficeApprovalRecord[]
+
+  @@map("approval_instances")
+  @@schema("office_collab")
+}
+
+model OfficeApprovalRecord {
+  id          String    @id @db.Uuid
+  instanceId  String?   @map("instance_id") @db.Uuid
+  step        Int?
+  approverId  String?   @map("approver_id") @db.Uuid
+  action      String?
+  comment     String?
+  attachments Json?     @db.JsonB
+  approvedAt  DateTime? @map("approved_at")
+  createdAt   DateTime? @map("created_at") @default(now())
+
+  instance OfficeApprovalInstance? @relation(fields: [instanceId], references: [id])
+
+  @@map("approval_records")
+  @@schema("office_collab")
+}
+
+model OfficeDocument {
+  id           String    @id @db.Uuid
+  tenantId     String?   @map("tenant_id") @db.Uuid
+  documentCode String?   @map("document_code")
+  documentName String?   @map("document_name")
+  documentType String?   @map("document_type")
+  category     String?
+  version      String?
+  fileUrl      String?   @map("file_url")
+  fileSize     Int?      @map("file_size")
+  mimeType     String?   @map("mime_type")
+  description  String?
+  tags         Json?     @db.JsonB
+  isPublic     Boolean?  @map("is_public")
+  status       String?
+  createdBy    String?   @map("created_by") @db.Uuid
+  createdAt    DateTime? @map("created_at") @default(now())
+  updatedAt    DateTime? @map("updated_at") @updatedAt
+
+  @@map("documents")
+  @@schema("office_collab")
+}
+
+model OfficeTask {
+  id             String    @id @db.Uuid
+  tenantId       String?   @map("tenant_id") @db.Uuid
+  taskCode       String?   @map("task_code")
+  title          String?
+  description    String?
+  taskType       String?   @map("task_type")
+  priority       String?
+  status         String?
+  assigneeId     String?   @map("assignee_id") @db.Uuid
+  dueDate        DateTime? @map("due_date") @db.Date
+  completedDate  DateTime? @map("completed_date") @db.Date
+  estimatedHours Decimal?  @map("estimated_hours") @db.Decimal
+  actualHours    Decimal?  @map("actual_hours") @db.Decimal
+  progress       Decimal?  @db.Decimal
+  tags           Json?     @db.JsonB
+  attachments    Json?     @db.JsonB
+  createdBy      String?   @map("created_by") @db.Uuid
+  createdAt      DateTime? @map("created_at") @default(now())
+  updatedAt      DateTime? @map("updated_at") @updatedAt
+
+  @@map("tasks")
+  @@schema("office_collab")
+}
+
+model OfficeCalendarEvent {
+  id          String    @id @db.Uuid
+  tenantId    String?   @map("tenant_id") @db.Uuid
+  title       String?
+  description String?
+  startTime   DateTime? @map("start_time")
+  endTime     DateTime? @map("end_time")
+  location    String?
+  eventType   String?   @map("event_type")
+  createdBy   String?   @map("created_by") @db.Uuid
+  createdAt   DateTime? @map("created_at") @default(now())
+
+  @@map("calendar_events")
+  @@schema("office_collab")
+}
