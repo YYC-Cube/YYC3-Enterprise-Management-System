@@ -4,3 +4,14 @@ allowBuilds:
   prisma: true
   sharp: true
   unrs-resolver: true
+
+onlyBuiltDependencies:
+  - '@prisma/client'
+  - '@prisma/engines'
+  - prisma
+  - sharp
+  - unrs-resolver
+
+overrides:
+  postcss: '>=8.5.10'
+  '@ai-sdk/provider-utils': '>=3.0.98'
