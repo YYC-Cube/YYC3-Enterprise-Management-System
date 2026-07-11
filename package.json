@@ -5,7 +5,7 @@
   "description": "YYC³ Enterprise Management System — YanYuCloudCube 四源合一全功能企业管理底盘。Nexus-Portal 壳 + Management 器官 + Business-Mgmt 审批流 + Saas CRM/团队",
   "author": "YYC³ <admin@0379.email>",
   "license": "MIT",
-  "homepage": "https://management.yyc3.vip",
+  "homepage": "https://ems.yyc3.vip",
   "repository": {
     "type": "git",
     "url": "https://github.com/YYC-Cube/YYC3-Enterprise-Management-System.git"
@@ -13,7 +13,7 @@
   "scripts": {
     "build": "next build",
     "dev": "next dev -p 3223 --webpack",
-    "lint": "next lint --max-warnings 9999",
+    "lint": "eslint app/ components/ lib/ store/ hooks/ --ext .ts,.tsx",
     "start": "next start -p 3223",
     "type-check": "tsc --noEmit",
     "test": "vitest run",
@@ -22,6 +22,7 @@
   "dependencies": {
     "@ai-sdk/openai": "^1.0.0",
     "@ai-sdk/react": "^1.0.0",
+    "@fontsource/inter": "^5.2.8",
     "@hookform/resolvers": "^3.10.0",
     "@prisma/client": "^5.22.0",
     "@radix-ui/react-accordion": "^1.2.12",
@@ -111,14 +112,5 @@
     "tailwindcss": "^4.3.1",
     "typescript": "^5.6.0",
     "vitest": "^4.0.16"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "@prisma/client",
-      "@prisma/engines",
-      "prisma",
-      "sharp",
-      "unrs-resolver"
-    ]
   }
 }

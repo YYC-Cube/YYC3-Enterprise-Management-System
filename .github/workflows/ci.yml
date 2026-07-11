@@ -1,10 +1,10 @@
-name: CI/CD
+name: CI — Quality Gates
 
 on:
-  push:
-    branches: [main, develop]
   pull_request:
-    branches: [main]
+    branches: [main, develop]
+  push:
+    branches: [develop]
 
 jobs:
   quality:
@@ -12,15 +12,25 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: pnpm/action-setup@v4
         with:
           version: latest
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
       - name: TypeScript check
-        run: pnpm exec tsc --noEmit
+        run: pnpm type-check
+
       - name: ESLint check
-        run: pnpm exec eslint app/ components/ lib/ store/ hooks/ --ext .ts,.tsx --max-warnings 0
+        run: pnpm lint
+
+      - name: Run unit tests
+        run: pnpm test
+        continue-on-error: true

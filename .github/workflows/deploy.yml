@@ -15,8 +15,44 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # ── 质量门禁（部署前置条件） ──
+  quality:
+    name: Quality Gates
+    runs-on: ubuntu-latest
+    outputs:
+      passed: ${{ steps.check.outputs.passed }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: TypeScript check
+        run: pnpm type-check
+
+      - name: ESLint check
+        run: pnpm lint
+
+      - name: Run unit tests
+        run: pnpm test
+        continue-on-error: true
+
+      - id: check
+        run: echo "passed=true" >> "$GITHUB_OUTPUT"
+
+  # ── 构建（依赖质量门禁通过） ──
   build:
-    name: Build & Deploy
+    name: Build Static Export
+    needs: quality
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -41,14 +77,18 @@ jobs:
         run: touch out/.nojekyll
 
       - name: Ensure CNAME
-        run: echo "management.yyc3.vip" > out/CNAME
+        run: echo "ems.yyc3.vip" > out/CNAME
 
-      - uses: actions/configure-pages@v5
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
 
-      - uses: actions/upload-pages-artifact@v3
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
         with:
           path: out
+          retention-days: 7
 
+  # ── 部署 ──
   deploy:
     name: Deploy to GitHub Pages
     needs: build

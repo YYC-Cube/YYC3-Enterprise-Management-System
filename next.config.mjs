@@ -16,7 +16,7 @@ const nextConfig = {
     output: 'export',
     images: { unoptimized: true },
     // GitHub Pages 可能需要 basePath（如果使用 <user>.github.io/<repo>）
-    // 本项目使用自定义域名 management.yyc3.vip，无需 basePath
+    // 本项目使用自定义域名 ems.yyc3.vip，无需 basePath
     basePath: '',
     trailingSlash: true,
   }),
